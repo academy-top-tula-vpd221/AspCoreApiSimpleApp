@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Employees</title>
+    <style>
+        button{
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <h3>Employees:</h3>
+    <div>
+        <input type="hidden" id="empl_id" />
+        <label> Name: <input id="empl_name" /></label>
+        <label> Age: <input id="empl_age" type="number" /></label>
+        <button id="btn_save">Save</button>
+        <button id="btn_reset">Reset</button>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+
+        async function getEmployees() {
+            let response = await fetch("/api/empl", {
+                method: "GET",
+                headers: {"Accept": "application/json"}
+            });
+
+            if (response.ok === true) {
+                let employees = await response.json();
+                let rows = document.querySelector("tbody");
+
+                employees.forEach(e => rows.append(create_row(e)));
+            }
+
+        }
+
+        async function getEmployee(id) {
+            let response = await fetch(`/api/empl/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+
+            if (response.ok === true) {
+                let employee = await response.json();
+                document.getElementById("empl_id").value = employee.id;
+                document.getElementById("empl_name").value = employee.name;
+                document.getElementById("empl_age").value = employee.age;
+            }
+            else {
+                let message = response.json();
+                console.log(message.text);
+            }
+        }
+
+        async function createEmployee(empl_name, empl_age) {
+            let response = await fetch("/api/empl", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: empl_name,
+                    age: parseInt(empl_age, 10)
+                })
+            });
+
+            if (response.ok === true) {
+                let employee = await response.json();
+                document.querySelector("tbody").append(create_row(employee));
+            }
+            else {
+                let message = response.json();
+                console.log(message.text);
+            }
+        }
+
+        async function updateEmployee(empl_id, empl_name, empl_age) {
+            let response = await fetch("/api/empl", {
+                method: "PUT",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    id: empl_id,
+                    name: empl_name,
+                    age: parseInt(empl_age, 10)
+                })
+            });
+
+            if (response.ok === true) {
+                let employee = await response.json();
+                document.querySelector(`tr[data-rowid=${employee.id}]`).replaceWith(create_row(employee));
+            }
+            else {
+                let message = response.json();
+                console.log(message.text);
+            }
+        }
+
+        async function deleteEmployee(id) {
+            let response = await fetch(`/api/empl/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "Accept": "application/json"
+                }
+            });
+
+            if (response.ok === true) {
+                let employee = await response.json();
+                document.querySelector(`tr[data-rowid=${employee.id}]`).remove();
+            }
+            else {
+                let message = response.json();
+                console.log(message.text);
+            }
+        }
+
+
+        function reset() {
+            document.getElementById("empl_id").value = "";
+            document.getElementById("empl_name").value = "";
+            document.getElementById("empl_age").value = "";
+        }
+
+        function create_row(employee) {
+
+            let tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", employee.id);
+
+            let td_name = document.createElement("td");
+            td_name.append(employee.name);
+            tr.append(td_name);
+
+            let td_age = document.createElement("td");
+            td_age.append(employee.age);
+            tr.append(td_age);
+
+            let td_btns = document.createElement("td");
+
+            let btn_edit = document.createElement("button");
+            btn_edit.append("Edit");
+            btn_edit.addEventListener("click", async () => await getEmployee(employee.id));
+            td_btns.append(btn_edit);
+
+            let btn_delete = document.createElement("button");
+            btn_delete.append("Delete");
+            btn_delete.addEventListener("click", async () => await deleteEmployee(employee.id));
+            td_btns.append(btn_delete);
+
+            tr.append(td_btns);
+
+            return tr;
+        }
+
+        document.getElementById("btn_reset").addEventListener("click", () => reset());
+
+        document.getElementById("btn_save").addEventListener("click", () => {
+            let id = document.getElementById("empl_id").value;
+            let name = document.getElementById("empl_name").value;
+            let age = document.getElementById("empl_age").value;
+
+            if (id === "")
+                createEmployee(name, age);
+            else
+                updateEmployee(id, name, age);
+        });
+
+        getEmployees();
+
+    </script>
+</body>
+</html>
