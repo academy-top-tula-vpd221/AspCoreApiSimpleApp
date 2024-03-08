@@ -1,63 +1,80 @@
-using System.Text.RegularExpressions;
 using AspCoreApiSimpleApp;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
-List<Employee> employees = new()
+// начальные данные
+List<Employee> employees = new List<Employee>
 {
-    new() { Id = Guid.NewGuid().ToString(), Name = "Tommy", Age = 27 },
-    new() { Id = Guid.NewGuid().ToString(), Name = "Bobby", Age = 31 },
-    new() { Id = Guid.NewGuid().ToString(), Name = "Jimmy", Age = 43 },
+    new() { Id = Guid.NewGuid().ToString(), Name = "Tom", Age = 37 },
+    new() { Id = Guid.NewGuid().ToString(), Name = "Bob", Age = 41 },
+    new() { Id = Guid.NewGuid().ToString(), Name = "Sam", Age = 24 }
 };
 
-
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder();
 var app = builder.Build();
 
 app.Run(async (context) =>
 {
-    var request = context.Request;
     var response = context.Response;
-
+    var request = context.Request;
     var path = request.Path;
     var method = request.Method;
 
-    string regexpGuid = @"^/api/empl/\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$";
-
-    if(path == "/api/empl" && method == "GET" )
+    string regexpGuid = @"^/api/empls/\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$";
+    if (path == "/api/empls" && method == "GET")
     {
-        // senf all employees
         await GetAllEmployees(response);
     }
-    else if(Regex.IsMatch(path, regexpGuid) && method == "GET")
+    else if (Regex.IsMatch(path, regexpGuid) && method == "GET")
     {
         string? id = path.Value?.Split("/")[3];
         await GetEmployee(id, response);
     }
-    else if(path == "/api/empl" && method == "POST")
+    else if (path == "/api/empls" && method == "POST")
     {
-        await InsertEmployee(request, response);
+        await CreateEmployee(response, request);
     }
-    else if(path == "/api/empl" && method == "PUT")
+    else if (path == "/api/empls" && method == "PUT")
     {
-        await UpdateEmployee(request, response);
+        await UpdateEmployee(response, request);
     }
-    else if(Regex.IsMatch(path, regexpGuid) && method == "DELETE")
+    else if (Regex.IsMatch(path, regexpGuid) && method == "DELETE")
     {
         string? id = path.Value?.Split("/")[3];
         await DeleteEmployee(id, response);
     }
-
     else
     {
-        response.ContentType = "text/html; charset = utf-8";
+        response.ContentType = "text/html; charset=utf-8";
         await response.SendFileAsync("html/index.html");
     }
 });
 
+app.Run();
+
+async Task GetAllEmployees(HttpResponse response)
+{
+    await response.WriteAsJsonAsync(employees);
+}
+
+async Task GetEmployee(string? id, HttpResponse response)
+{
+    Employee? employee = employees.FirstOrDefault((e) => e.Id == id);
+
+    if (employee != null)
+        await response.WriteAsJsonAsync(employee);
+    else
+    {
+        response.StatusCode = 404;
+        await response.WriteAsJsonAsync(new { message = "Пользователь не найден" });
+    }
+}
+
 async Task DeleteEmployee(string? id, HttpResponse response)
 {
-    Employee? employee = employees.FirstOrDefault(e => e.Id == id);
+    Employee? employee = employees.FirstOrDefault((e) => e.Id == id);
 
-    if(employee is not null)
+    if (employee != null)
     {
         employees.Remove(employee);
         await response.WriteAsJsonAsync(employee);
@@ -65,50 +82,16 @@ async Task DeleteEmployee(string? id, HttpResponse response)
     else
     {
         response.StatusCode = 404;
-        await response.WriteAsJsonAsync(new { text = "Employee not found " });
+        await response.WriteAsJsonAsync(new { message = "Пользователь не найден" });
     }
 }
 
-async Task UpdateEmployee(HttpRequest request, HttpResponse response)
+async Task CreateEmployee(HttpResponse response, HttpRequest request)
 {
     try
     {
-
-        Employee? employee = await request.ReadFromJsonAsync<Employee>();
-
-        if(employee is not null)
-        {
-            Employee? employeeUpdate = employees.FirstOrDefault(e => e.Id == employee.Id);
-
-            if(employeeUpdate is not null)
-            {
-                employeeUpdate.Age = employee.Age;
-                employeeUpdate.Name = employee.Name;
-                await response.WriteAsJsonAsync(employeeUpdate);
-            }
-            else
-            {
-                response.StatusCode = 404;
-                await response.WriteAsJsonAsync(new { text = "Employee not found " });
-            }
-        }
-        else
-            throw new Exception("Incorrect data");
-    }
-    catch(Exception)
-    {
-        response.StatusCode = 404;
-        await response.WriteAsJsonAsync(new { text = "Incorrect data" });
-    }
-}
-
-async Task InsertEmployee(HttpRequest request, HttpResponse response)
-{
-    try
-    {
-        Employee? employee = await request.ReadFromJsonAsync<Employee>();
-
-        if(employee is not null)
+        var employee = await request.ReadFromJsonAsync<Employee>();
+        if (employee != null)
         {
             employee.Id = Guid.NewGuid().ToString();
             employees.Add(employee);
@@ -116,32 +99,44 @@ async Task InsertEmployee(HttpRequest request, HttpResponse response)
         }
         else
         {
-            throw new Exception("Incorrect data");
+            throw new Exception("Некорректные данные");
         }
     }
     catch (Exception)
     {
-        response.StatusCode = 404;
-        await response.WriteAsJsonAsync(new { text = "Incorrect data" });
+        response.StatusCode = 400;
+        await response.WriteAsJsonAsync(new { message = "Некорректные данные" });
     }
 }
 
-async Task GetEmployee(string? id, HttpResponse response)
+async Task UpdateEmployee(HttpResponse response, HttpRequest request)
 {
-    Employee? employee = employees.FirstOrDefault(e => e.Id == id);
-
-    if (employee is not null)
-        await response.WriteAsJsonAsync(employee);
-    else
+    try
     {
-        response.StatusCode = 404;
-        await response.WriteAsJsonAsync(new { text = "Employee not found " });
+        Employee? employeeData = await request.ReadFromJsonAsync<Employee>();
+        if (employeeData != null)
+        {
+            var employee = employees.FirstOrDefault(e => e.Id == employeeData.Id);
+            if (employee != null)
+            {
+                employee.Age = employeeData.Age;
+                employee.Name = employeeData.Name;
+                await response.WriteAsJsonAsync(employee);
+            }
+            else
+            {
+                response.StatusCode = 404;
+                await response.WriteAsJsonAsync(new { message = "Пользователь не найден" });
+            }
+        }
+        else
+        {
+            throw new Exception("Некорректные данные");
+        }
+    }
+    catch (Exception)
+    {
+        response.StatusCode = 400;
+        await response.WriteAsJsonAsync(new { message = "Некорректные данные" });
     }
 }
-
-async Task GetAllEmployees(HttpResponse response)
-{
-    await response.WriteAsJsonAsync(employees);
-}
-
-app.Run();

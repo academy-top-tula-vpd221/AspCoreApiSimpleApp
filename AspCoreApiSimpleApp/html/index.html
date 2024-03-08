@@ -2,142 +2,121 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Employees</title>
+    <title>METANIT.COM</title>
     <style>
-        button{
+        button {
             margin: 0 10px;
         }
     </style>
 </head>
 <body>
-    <h3>Employees:</h3>
+    <h2>List employees:</h2>
     <div>
-        <input type="hidden" id="empl_id" />
-        <label> Name: <input id="empl_name" /></label>
-        <label> Age: <input id="empl_age" type="number" /></label>
+        <input type="hidden" id="employee_id" />
+        <label>Name: <input id="employee_name" /></label>
+        <label>Age: <input id="employee_age" type="number" /></label>
         <button id="btn_save">Save</button>
         <button id="btn_reset">Reset</button>
     </div>
     <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Age</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody></tbody>
+        <thead><tr><th>Name</th><th>Age</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
     </table>
 
     <script>
 
         async function getEmployees() {
-            let response = await fetch("/api/empl", {
-                method: "GET",
-                headers: {"Accept": "application/json"}
-            });
-
-            if (response.ok === true) {
-                let employees = await response.json();
-                let rows = document.querySelector("tbody");
-
-                employees.forEach(e => rows.append(create_row(e)));
-            }
-
-        }
-
-        async function getEmployee(id) {
-            let response = await fetch(`/api/empl/${id}`, {
+            const response = await fetch("/api/empls", {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
 
             if (response.ok === true) {
-                let employee = await response.json();
-                document.getElementById("empl_id").value = employee.id;
-                document.getElementById("empl_name").value = employee.name;
-                document.getElementById("empl_age").value = employee.age;
-            }
-            else {
-                let message = response.json();
-                console.log(message.text);
+                const employees = await response.json();
+                const rows = document.querySelector("tbody");
+                employees.forEach(employee => rows.append(createRow(employee)));
             }
         }
 
-        async function createEmployee(empl_name, empl_age) {
-            let response = await fetch("/api/empl", {
+        async function getEmployee(id) {
+            const response = await fetch(`/api/empls/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const employee = await response.json();
+                document.getElementById("employee_id").value = employee.id;
+                document.getElementById("employee_name").value = employee.name;
+                document.getElementById("employee_age").value = employee.age;
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+        async function createEmployee(employee_name, employee_age) {
+            const response = await fetch("api/empls", {
                 method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: empl_name,
-                    age: parseInt(empl_age, 10)
+                    name: employee_name,
+                    age: parseInt(employee_age, 10)
                 })
             });
-
             if (response.ok === true) {
-                let employee = await response.json();
-                document.querySelector("tbody").append(create_row(employee));
+                const employee = await response.json();
+                document.querySelector("tbody").append(createRow(employee));
             }
             else {
-                let message = response.json();
-                console.log(message.text);
+                const error = await response.json();
+                console.log(error.message);
             }
         }
 
-        async function updateEmployee(empl_id, empl_name, empl_age) {
-            let response = await fetch("/api/empl", {
+        async function editEmployee(employee_id, employee_name, employee_age) {
+            const response = await fetch("api/empls", {
                 method: "PUT",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id: empl_id,
-                    name: empl_name,
-                    age: parseInt(empl_age, 10)
+                    id: employee_id,
+                    name: employee_name,
+                    age: parseInt(employee_age, 10)
                 })
             });
-
             if (response.ok === true) {
-                let employee = await response.json();
-                document.querySelector(`tr[data-rowid=${employee.id}]`).replaceWith(create_row(employee));
+                const employee = await response.json();
+                document.querySelector(`tr[data-rowid='${employee.id}']`).replaceWith(createRow(employee));
             }
             else {
-                let message = response.json();
-                console.log(message.text);
+                const error = await response.json();
+                console.log(error.message);
             }
         }
 
         async function deleteEmployee(id) {
-            let response = await fetch(`/api/empl/${id}`, {
+            const response = await fetch(`/api/empls/${id}`, {
                 method: "DELETE",
-                headers: {
-                    "Accept": "application/json"
-                }
+                headers: { "Accept": "application/json" }
             });
-
             if (response.ok === true) {
-                let employee = await response.json();
-                document.querySelector(`tr[data-rowid=${employee.id}]`).remove();
+                const employee = await response.json();
+                document.querySelector(`tr[data-rowid='${employee.id}']`).remove();
             }
             else {
-                let message = response.json();
-                console.log(message.text);
+                const error = await response.json();
+                console.log(error.message);
             }
         }
 
-
         function reset() {
-            document.getElementById("empl_id").value = "";
-            document.getElementById("empl_name").value = "";
-            document.getElementById("empl_age").value = "";
+            document.getElementById("employee_id").value = "";
+            document.getElementById("employee_name").value = "";
+            document.getElementById("employee_age").value = "";
         }
 
-        function create_row(employee) {
-
+        function createRow(employee) {
             let tr = document.createElement("tr");
             tr.setAttribute("data-rowid", employee.id);
 
@@ -168,19 +147,19 @@
 
         document.getElementById("btn_reset").addEventListener("click", () => reset());
 
-        document.getElementById("btn_save").addEventListener("click", () => {
-            let id = document.getElementById("empl_id").value;
-            let name = document.getElementById("empl_name").value;
-            let age = document.getElementById("empl_age").value;
 
+        document.getElementById("btn_save").addEventListener("click", async () => {
+            const id = document.getElementById("employee_id").value;
+            const name = document.getElementById("employee_name").value;
+            const age = document.getElementById("employee_age").value;
             if (id === "")
-                createEmployee(name, age);
+                await createEmployee(name, age);
             else
-                updateEmployee(id, name, age);
+                await editEmployee(id, name, age);
+            reset();
         });
 
         getEmployees();
-
     </script>
 </body>
 </html>
