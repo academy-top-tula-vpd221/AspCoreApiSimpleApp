@@ -13,6 +13,56 @@ List<Employee> employees = new List<Employee>
 var builder = WebApplication.CreateBuilder();
 var app = builder.Build();
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapGet("/api/empls", () => employees);
+
+app.MapGet("/api/empls/{id}", (string id) =>
+{
+    Employee? employee = employees.FirstOrDefault((e) => e.Id == id);
+
+    if (employee != null)
+        return Results.Json(employee);
+    else
+        return Results.NotFound(new { message = "Пользователь не найден" });
+});
+
+app.MapDelete("/api/empls/{id}", (string id) =>
+{
+    Employee? employee = employees.FirstOrDefault((e) => e.Id == id);
+    if (employee != null)
+    {
+        employees.Remove(employee);
+        return Results.Json(employee);
+    }
+    else
+        return Results.NotFound(new { message = "Пользователь не найден" });
+});
+
+app.MapPost("/api/empls", (Employee employee) =>
+{
+    employee.Id = Guid.NewGuid().ToString();
+    employees.Add(employee);
+    return Results.Json(employee);
+});
+
+app.MapPut("/api/empls", (Employee employeeData) =>
+{
+    var employee = employees.FirstOrDefault(e => e.Id == employeeData.Id);
+    if (employee != null)
+    {
+        employee.Name = employeeData.Name;
+        employee.Age = employeeData.Age;
+        return Results.Json(employee);
+    }
+    else
+        return Results.NotFound(new { message = "Пользователь не найден" });
+});
+
+app.Run();
+
+/*
 app.Run(async (context) =>
 {
     var response = context.Response;
@@ -140,3 +190,4 @@ async Task UpdateEmployee(HttpResponse response, HttpRequest request)
         await response.WriteAsJsonAsync(new { message = "Некорректные данные" });
     }
 }
+*/
